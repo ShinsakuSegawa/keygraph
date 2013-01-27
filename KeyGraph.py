@@ -165,7 +165,6 @@ def link(base):
     base_set = flatten(base)
     base_set = set(base_set)
          
-    print list(base_set)
     return list(base_set)
      
 #リストの平坦化 
@@ -223,6 +222,50 @@ def fg(words, wfs, base, sents):
     return fg
 
 
+def calC(nodes, wfs, sents):
+    c = {} 
+    for n1 in nodes:
+        c[n1] = {} #初期化
+        for n2  in nodes:
+            c[n1][n2] = 0 #初期化だよ 
+            if n1 == n2: 
+                continue 
+            for s in sents:
+                c[n1][n2] += wfs[n1][s] * wfs[n2][s]                 
+    
+#   c_sumの計算
+    c_sum = {}
+    for n1 in nodes:
+        c_sum[n1] = 0
+        for n2 in nodes:
+            c_sum[n1] += c[n1][n2]
+
+#	listにしています	
+    c_sum_list = sorted(c_sum.items(), key = lambda x:x[1])
+    keywords = [w for w,k in c_sum_list[-12:]]
+    for k in keywords:
+        print k
+
+
+#   c_sum_listの上位12がキーワードになる
+#   c_cum_listの上位12をキーワードとして返す
+#   それぞれのキーワードでcのが一番大きい語対を探して返す
+    k_pair = {}
+    for k in keywords:
+        maxc = 0
+        for n in nodes:
+            if k == n:
+                continue
+            if maxc < c[k][n]:
+                maxc = c[k][n]
+                k_pair[k] = n
+        print k, k_pair[k] 
+
+    kw_pair = k_pair.items()
+
+    return kw_pair 
+ 
+
 def C(hk, base, sents):
     c = {}
     for k in hk:
@@ -238,14 +281,13 @@ def C(hk, base, sents):
     for k in hk:
         csum[k] = 0
         for b in base:
-            csum_hk[k] += c[k][b]
+            csum[k] += c[k][b]
 
     for b in base:
         csum[b] = 0
         for k in hk:
-            csum_ba[b] += c[k][b]
+            csum[b] += c[k][b]
              
-              
     csum_list = sorted(csum.items(), key=lambda x:x[1]) 
     
     print "Cの合計だよー"
@@ -253,8 +295,6 @@ def C(hk, base, sents):
         print k,v
          
     csum = [kw for kw,cs in csum_list[-12:]]
-    max_c = {}
-    for 
       
 #	listにしています	
     c_list = [] 
@@ -266,12 +306,12 @@ def C(hk, base, sents):
 
     return c_list,csum_list 
   
-def draw(base, G_C):
+def draw(base, k_pair):
     fout = codecs.open("./dot/base.dot","w","utf-8")
     fout.write('graph base {\n')
     for i,j in base:
        fout.write(i + '--' + j +'\n')
-    for i,j in G_C:
+    for i,j in k_pair:
        fout.write(i + '--' + j + '[style="dotted"]\n')
     fout.write('}')
      
@@ -283,7 +323,7 @@ def draw(base, G_C):
 if __name__ == "__main__":
     stime = time.time() 
 #   イベントファイル読み込み
-    f = codecs.open('./fes/comicMarket.txt', 'r', 'utf-8')
+    f = codecs.open('./fes/gionFes.txt', 'r', 'utf-8')
     text = f.read()
     f.close()
 
@@ -318,12 +358,9 @@ if __name__ == "__main__":
      
     base = [[i,j] for i,j,c in co[-30:]]  
 
-        
     #baseに入っているノードを返す      
     G_base = link(base)   
      
-    print G_base 
-    
 #	keyの計算  
     key = key(words, wfs, G_base, sents)
  
@@ -333,27 +370,17 @@ if __name__ == "__main__":
     
     high_key = [k for k,f in high_key]
      
+    nodes = high_key + G_base  
 
 #	c(wi,wj)の計算 [hk, base, スコア]が返り値
-    C,Csum = C(high_key, G_base, sents)	
+    keywords_pair = calC(nodes, wfs, sents)	
     
-    G_Csum = [kw for kw,cs in Csum[-12:]]
+#    G_Csum = [kw for kw,cs in Csum[-12:]]
      
-    C.sort(key=lambda x:x[2])
-     
-    G_C = [[i,j] for i,j,c in C[-12:]]  
-     
-     
-    for i,j in base:
-        print i,j
-    
-    for x,y in G_C:
-        print x,y
-         
-    for x in G_Csum:
-        print x
-    
-    draw(base,G_C)
+    for k1, k2 in keywords_pair:
+        print k1,k2
+#   グラフをDOTファイルを出力
+    draw(base,keywords_pair)
 
     etime = time.time()
    
